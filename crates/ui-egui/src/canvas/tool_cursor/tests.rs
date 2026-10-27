@@ -184,10 +184,10 @@ fn scaled_wayland_bucket_uses_one_cached_image_area_without_a_split_crosshair() 
     let (moved, moved_images) = run(1.25, moved_at);
     assert_eq!(moved_images.len(), 1);
     assert_eq!(moved_images[0].0, first_images[0].0, "the single scaled texture is cached while it moves");
-    let layer = egui::LayerId::new(egui::Order::Tooltip, egui::Id::new("pc-tool-cursor"));
+    let layer = egui::LayerId::new(egui::Order::Tooltip, egui::Id::unique("pc-tool-cursor"));
     assert!(ctx.memory(|memory| memory.areas().visible_layer_ids().contains(&layer)), "one cursor Area owns the image");
     assert!(
-        !ctx.memory(|memory| memory.areas().visible_layer_ids().iter().any(|id| id.id == egui::Id::new("pc-icon-cursor"))),
+        !ctx.memory(|memory| memory.areas().visible_layer_ids().iter().any(|id| id.id == egui::Id::unique("pc-icon-cursor"))),
         "the old icon overlay is absent"
     );
     let mut moved_shapes = Vec::new();
