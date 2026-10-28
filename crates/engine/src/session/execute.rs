@@ -1,5 +1,8 @@
-use super::history::fix_selection;
-use super::*;
+use super::history::{fix_selection, visibility_changes};
+use super::{
+    Arc, Document, EngineError, LayerId, Result, Session, Value, brush_cmds, channel_cmds, commands, hidden_target, jobs, layer_multi_cmds, retouch_cmds,
+    smart_cmds,
+};
 
 impl Session {
     /// Run a command by id with JSON params. Returns a JSON result.
@@ -68,6 +71,12 @@ impl Session {
         crate::filters::validate_params(id, params)?;
         if id == "layer.new.layer" {
             crate::new_layer::parse(params)?;
+        }
+        if id == "layer.new.group" {
+            crate::group_options::below(id, params)?;
+        }
+        if id == "layer.new.group" || id == "layer.new.groupFromLayers" {
+            crate::group_options::GroupOptions::parse(id, params)?;
         }
         // A command that takes `"layer"` (an id or a name, as it resolves it) fails on one the
         // document doesn't have.

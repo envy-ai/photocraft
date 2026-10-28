@@ -1,6 +1,6 @@
 use super::tool_input::ToolEvent;
 use super::view_xform::ViewXform;
-use super::*;
+use super::{Color32, PhotocraftApp, Pos2, Rect, Stroke, Tool, json, pos2, vec2};
 
 /// Windows' crosshair cursor inverts the pixels under it, so over mid-grey (the pasteboard, many
 /// photos) it vanishes (#737), and the Linux themes' and macOS's differ. Use the same black-and-white
@@ -144,6 +144,31 @@ pub(crate) fn pipette_cursor(ctx: &egui::Context, p: Pos2) -> egui::CursorIcon {
     // The tip of the icon's pipette is at (2, 22) of its 24-unit box.
     crate::icons::cursor(ctx, "pipette", p, vec2(2.0, 22.0) / 24.0, 20.0);
     egui::CursorIcon::None
+}
+
+/// The Paint Bucket artwork and target share one cached cursor image. Report rasterization
+/// failures once per distinct message, with the same concise error in the dialog and status bar.
+pub(crate) fn paint_bucket_cursor(app: &mut PhotocraftApp, painter: &egui::Painter, p: Pos2) -> egui::CursorIcon {
+    let ctx = painter.ctx();
+    match crate::tool_cursor::bucket(painter, p) {
+        Ok(icon) => icon,
+        Err(error) => {
+            let id = egui::Id::unique("photocraft-bucket-cursor-error");
+            if ctx.data(|data| data.get_temp::<String>(id)).as_ref() != Some(&error) {
+                if !app.ui.dialogs.iter().any(|dialog| {
+                    dialog.kind == crate::state::DialogKind::Error && dialog.fields.get("message").and_then(serde_json::Value::as_str) == Some(&error)
+                }) {
+                    let mut fields = serde_json::Map::new();
+                    fields.insert("message".into(), json!(error));
+                    app.ui.open_dialog(crate::state::DialogKind::Error, fields);
+                }
+                ctx.data_mut(|data| data.insert_temp(id, error.clone()));
+            }
+            app.ui.status = error;
+            app.ui.status_error = true;
+            egui::CursorIcon::Default
+        }
+    }
 }
 
 /// Decided when the press starts, so ⌥ pressed or released mid-stroke never switches between
